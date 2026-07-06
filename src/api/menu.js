@@ -39,6 +39,13 @@ export const menuApi = {
     return res.data.data;
   },
 
+  restockItem: async (restaurantId, itemId, quantity) => {
+    const res = await client.patch(`/restaurants/${restaurantId}/items/${itemId}/restock`, {
+      quantity,
+    });
+    return res.data.data;
+  },
+
   deleteItem: async (restaurantId, itemId) => {
     await client.delete(`/restaurants/${restaurantId}/items/${itemId}`);
   },

@@ -6,7 +6,7 @@ import Modal from '../components/Modal.jsx';
 import Spinner from '../components/Spinner.jsx';
 
 const CATEGORY_EMPTY = { name: '', description: '', sortOrder: 0 };
-const ITEM_EMPTY = { categoryId: '', name: '', description: '', price: '', sortOrder: 0 };
+const ITEM_EMPTY = { categoryId: '', name: '', description: '', price: '', sortOrder: 0, trackStock: false, stockQuantity: 0 };
 
 function CategoryForm({ initial, onSubmit, onCancel, loading }) {
   const [form, setForm] = useState(initial || CATEGORY_EMPTY);
@@ -42,12 +42,15 @@ function CategoryForm({ initial, onSubmit, onCancel, loading }) {
 
 function ItemForm({ initial, categories, onSubmit, onCancel, loading }) {
   const [form, setForm] = useState(
-    initial ? { ...initial, price: String(initial.price) } : ITEM_EMPTY
+    initial ? { ...ITEM_EMPTY, ...initial, price: String(initial.price) } : ITEM_EMPTY
   );
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: name === 'sortOrder' ? Number(value) : value }));
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : (name === 'sortOrder' || name === 'stockQuantity') ? Number(value) : value,
+    }));
   };
 
   return (
@@ -77,6 +80,19 @@ function ItemForm({ initial, categories, onSubmit, onCancel, loading }) {
           <input name="sortOrder" type="number" value={form.sortOrder} onChange={handleChange} className="input" min="0" />
         </div>
       </div>
+      <div className="border-t border-gray-200 pt-4">
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" name="trackStock" checked={form.trackStock} onChange={handleChange} className="rounded" />
+          Suivre le stock de cet article
+        </label>
+        {form.trackStock && (
+          <div className="mt-3">
+            <label className="label">Quantité en stock</label>
+            <input name="stockQuantity" type="number" min="0" value={form.stockQuantity} onChange={handleChange} className="input" />
+            <p className="text-xs text-gray-400 mt-1">L'article sera automatiquement masqué quand le stock atteint 0.</p>
+          </div>
+        )}
+      </div>
       <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
         <button type="button" onClick={onCancel} className="btn btn-secondary">Annuler</button>
         <button type="submit" disabled={loading} className="btn-primary">
@@ -87,7 +103,7 @@ function ItemForm({ initial, categories, onSubmit, onCancel, loading }) {
   );
 }
 
-function CategoryAccordion({ category, canEdit, onEditCategory, onDeleteCategory, onAddItem, onEditItem, onDeleteItem, onToggleAvailability }) {
+function CategoryAccordion({ category, canEdit, onEditCategory, onDeleteCategory, onAddItem, onEditItem, onDeleteItem, onToggleAvailability, onRestock }) {
   const [open, setOpen] = useState(true);
 
   return (
@@ -120,6 +136,7 @@ function CategoryAccordion({ category, canEdit, onEditCategory, onDeleteCategory
                   <th className="table-header">Nom</th>
                   <th className="table-header">Description</th>
                   <th className="table-header">Prix</th>
+                  <th className="table-header">Stock</th>
                   <th className="table-header">Disponible</th>
                   {canEdit && <th className="table-header text-right">Actions</th>}
                 </tr>
@@ -133,17 +150,37 @@ function CategoryAccordion({ category, canEdit, onEditCategory, onDeleteCategory
                       <span className="font-medium">{Number(item.price).toLocaleString('fr-MG')} Ar</span>
                     </td>
                     <td className="table-cell">
-                      {canEdit ? (
+                      {item.trackStock ? (
+                        <div className="flex items-center gap-2">
+                          <span className={`badge ${item.stockQuantity > 0 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-700'}`}>
+                            {item.stockQuantity}
+                          </span>
+                          {canEdit && (
+                            <button onClick={() => onRestock(item)} className="text-xs text-primary-700 hover:underline">
+                              + Réapprovisionner
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">—</span>
+                      )}
+                    </td>
+                    <td className="table-cell">
+                      {item.trackStock ? (
+                        <span className={`badge ${item.isAvailable ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`} title="Dispo automatique liée au stock">
+                          {item.isAvailable ? 'Disponible' : 'Indisponible'}
+                        </span>
+                      ) : canEdit ? (
                         <button
                           onClick={() => onToggleAvailability(item)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${item.available ? 'bg-green-500' : 'bg-gray-200'}`}
-                          title={item.available ? 'Marquer indisponible' : 'Marquer disponible'}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${item.isAvailable ? 'bg-green-500' : 'bg-gray-200'}`}
+                          title={item.isAvailable ? 'Marquer indisponible' : 'Marquer disponible'}
                         >
-                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${item.available ? 'translate-x-6' : 'translate-x-1'}`} />
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${item.isAvailable ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
                       ) : (
-                        <span className={`badge ${item.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
-                          {item.available ? 'Disponible' : 'Indisponible'}
+                        <span className={`badge ${item.isAvailable ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                          {item.isAvailable ? 'Disponible' : 'Indisponible'}
                         </span>
                       )}
                     </td>
@@ -184,6 +221,8 @@ export default function MenuPage() {
   const [showCreateItem, setShowCreateItem] = useState(null);
   const [editItem, setEditItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
+  const [restockItem, setRestockItem] = useState(null);
+  const [restockQty, setRestockQty] = useState('');
 
   const fetchMenu = useCallback(async () => {
     setLoading(true);
@@ -278,10 +317,26 @@ export default function MenuPage() {
     }
   };
 
+  const handleRestock = async (e) => {
+    e.preventDefault();
+    const quantity = Number(restockQty);
+    if (!quantity || quantity <= 0) return;
+    setFormLoading(true);
+    try {
+      await menuApi.restockItem(restaurantId, restockItem.id, quantity);
+      setRestockItem(null);
+      setRestockQty('');
+      fetchMenu();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Impossible de réapprovisionner cet article.');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const handleToggleAvailability = async (item) => {
     try {
-      // item.available = valeur réelle (Jackson sérialise isAvailable() → "available")
-      await menuApi.toggleItemAvailability(restaurantId, item.id, !item.available);
+      await menuApi.toggleItemAvailability(restaurantId, item.id, !item.isAvailable);
       fetchMenu();
     } catch (err) {
       alert(err.response?.data?.message || 'Impossible de modifier la disponibilité.');
@@ -328,6 +383,7 @@ export default function MenuPage() {
               onEditItem={(item, category) => setEditItem({ item, category })}
               onDeleteItem={setDeleteItem}
               onToggleAvailability={handleToggleAvailability}
+              onRestock={(item) => { setRestockItem(item); setRestockQty(''); }}
             />
           ))}
         </div>
@@ -394,6 +450,30 @@ export default function MenuPage() {
               </button>
             </div>
           </div>
+        )}
+      </Modal>
+
+      <Modal isOpen={!!restockItem} onClose={() => setRestockItem(null)} title="Réapprovisionner" size="sm">
+        {restockItem && (
+          <form onSubmit={handleRestock} className="space-y-4">
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold">{restockItem.name}</span> — stock actuel : {restockItem.stockQuantity}
+            </p>
+            <div>
+              <label className="label">Quantité à ajouter</label>
+              <input
+                type="number" min="1" value={restockQty}
+                onChange={(e) => setRestockQty(e.target.value)}
+                className="input" required autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2 border-t border-gray-200">
+              <button type="button" onClick={() => setRestockItem(null)} className="btn btn-secondary">Annuler</button>
+              <button type="submit" disabled={formLoading} className="btn-primary">
+                {formLoading ? <Spinner size="sm" /> : 'Ajouter au stock'}
+              </button>
+            </div>
+          </form>
         )}
       </Modal>
     </div>

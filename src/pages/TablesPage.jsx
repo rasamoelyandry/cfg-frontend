@@ -117,8 +117,7 @@ export default function TablesPage() {
     }
   };
 
-  // Jackson sérialise isActive → "active"
-  const activeTables = tables.filter((t) => t.active !== false);
+  const activeTables = tables.filter((t) => t.isActive !== false);
 
   return (
     <div>
@@ -182,8 +181,8 @@ export default function TablesPage() {
                     </div>
                   </td>
                   <td className="table-cell">
-                    <span className={`badge ${table.active !== false ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
-                      {table.active !== false ? 'Active' : 'Inactive'}
+                    <span className={`badge ${table.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                      {table.isActive !== false ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   {canEdit && (

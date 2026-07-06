@@ -244,9 +244,8 @@ export default function UsersPage() {
                     </span>
                   </td>
                   <td className="table-cell">
-                    {/* Jackson sérialise isActive → "active" */}
-                    <span className={`badge ${u.active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'}`}>
-                      {u.active !== false ? 'Actif' : 'Inactif'}
+                    <span className={`badge ${u.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'}`}>
+                      {u.isActive !== false ? 'Actif' : 'Inactif'}
                     </span>
                   </td>
                   <td className="table-cell text-right">
