@@ -52,6 +52,52 @@ function formatAmount(amount) {
   return new Intl.NumberFormat('fr-MG').format(amount) + ' Ar';
 }
 
+function printTicket(order) {
+  const items = order.items || [];
+  const orderLabel = `#${order.orderNumber || order.id?.slice(0, 8).toUpperCase()}`;
+  const rows = items.map((item) => {
+    const subtotal = (item.unitPrice || 0) * item.quantity;
+    return `<tr>
+      <td>${item.quantity}x ${item.menuItemName || 'Article'}</td>
+      <td style="text-align:right;white-space:nowrap;">${formatAmount(subtotal)}</td>
+    </tr>`;
+  }).join('');
+
+  const win = window.open('', '_blank', 'width=380,height=600');
+  if (!win) return;
+  win.document.write(`<!doctype html>
+<html>
+<head>
+<title>Addition ${orderLabel}</title>
+<style>
+  body { font-family: 'Courier New', monospace; width: 280px; margin: 0 auto; padding: 12px; font-size: 12px; color: #000; }
+  h1 { font-size: 14px; text-align: center; margin: 0 0 4px; }
+  .meta { text-align: center; font-size: 11px; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 2px 0; vertical-align: top; }
+  hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  .total-row td { border-top: 1px dashed #000; font-weight: bold; padding-top: 6px; }
+</style>
+</head>
+<body>
+  <h1>Addition</h1>
+  <div class="meta">
+    ${order.tableNumber ? `Table n&deg;${order.tableNumber}<br/>` : ''}
+    ${orderLabel}<br/>
+    ${formatDate(order.createdAt)}
+  </div>
+  <hr/>
+  <table>
+    ${rows}
+    <tr class="total-row"><td>Total</td><td style="text-align:right">${formatAmount(order.totalAmount)}</td></tr>
+  </table>
+</body>
+</html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
 function OrderDetailModal({ order }) {
   if (!order) return null;
   const items = order.items || [];
@@ -104,7 +150,7 @@ function OrderDetailModal({ order }) {
                     <p className="text-xs text-gray-400">+ {item.modifiers.map((m) => m.name).join(', ')}</p>
                   )}
                 </div>
-                <span className="text-gray-700 ml-4 whitespace-nowrap">{formatAmount(item.subtotal)}</span>
+                <span className="text-gray-700 ml-4 whitespace-nowrap">{formatAmount((item.unitPrice || 0) * item.quantity)}</span>
               </li>
             ))}
           </ul>
@@ -115,6 +161,16 @@ function OrderDetailModal({ order }) {
         <span>Total</span>
         <span className="text-primary-700">{formatAmount(order.totalAmount)}</span>
       </div>
+
+      <button
+        onClick={() => printTicket(order)}
+        className="btn btn-secondary w-full flex items-center justify-center gap-2"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" />
+        </svg>
+        Imprimer l'addition
+      </button>
     </div>
   );
 }
