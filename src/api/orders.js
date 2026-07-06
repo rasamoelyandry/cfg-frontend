@@ -19,6 +19,10 @@ export const ordersApi = {
     return res.data.data;
   },
 
+  hide: async (restaurantId, orderId) => {
+    await client.delete(`/restaurants/${restaurantId}/orders/${orderId}`);
+  },
+
   getKitchenBoard: async (restaurantId) => {
     const res = await client.get(`/restaurants/${restaurantId}/kitchen/board`);
     return res.data.data;

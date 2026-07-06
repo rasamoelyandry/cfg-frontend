@@ -183,6 +183,21 @@ export default function OrdersPage() {
     }
   };
 
+  const handleHide = async (order) => {
+    if (!window.confirm(`Retirer la commande #${order.orderNumber || order.id?.slice(0, 8).toUpperCase()} du tableau ? Elle reste conservée en comptabilité.`)) {
+      return;
+    }
+    setError('');
+    const previous = orders;
+    setOrders((list) => list.filter((o) => o.id !== order.id));
+    try {
+      await ordersApi.hide(restaurantId, order.id);
+    } catch (err) {
+      setOrders(previous);
+      setError(err.response?.data?.message || 'Impossible de retirer cette commande.');
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -251,6 +266,7 @@ export default function OrdersPage() {
                 <th className="table-header">Articles</th>
                 <th className="table-header">Total</th>
                 <th className="table-header">Heure</th>
+                {canEditStatus && <th className="table-header"></th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
@@ -277,6 +293,19 @@ export default function OrdersPage() {
                   <td className="table-cell text-gray-600">{order.itemCount ?? order.items?.length ?? '-'}</td>
                   <td className="table-cell font-medium text-gray-900">{formatAmount(order.totalAmount)}</td>
                   <td className="table-cell text-gray-500 text-sm">{formatDate(order.createdAt)}</td>
+                  {canEditStatus && (
+                    <td className="table-cell text-right">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleHide(order); }}
+                        title="Retirer du tableau"
+                        className="text-gray-400 hover:text-red-600 transition-colors"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
