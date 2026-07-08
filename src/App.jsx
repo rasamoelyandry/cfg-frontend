@@ -7,6 +7,7 @@ import Spinner from './components/Spinner.jsx';
 
 const LoginPage       = lazy(() => import('./pages/LoginPage.jsx'));
 const RestaurantsPage = lazy(() => import('./pages/RestaurantsPage.jsx'));
+const PlatformAdminsPage = lazy(() => import('./pages/PlatformAdminsPage.jsx'));
 const DashboardPage   = lazy(() => import('./pages/DashboardPage.jsx'));
 const MenuPage        = lazy(() => import('./pages/MenuPage.jsx'));
 const TablesPage      = lazy(() => import('./pages/TablesPage.jsx'));
@@ -45,6 +46,15 @@ export default function App() {
                 element={
                   <PrivateRoute allowedRoles={['SUPER_ADMIN']}>
                     <RestaurantsPage />
+                  </PrivateRoute>
+                }
+              />
+
+              <Route
+                path="/platform-admins"
+                element={
+                  <PrivateRoute allowedRoles={['SUPER_ADMIN']}>
+                    <PlatformAdminsPage />
                   </PrivateRoute>
                 }
               />
