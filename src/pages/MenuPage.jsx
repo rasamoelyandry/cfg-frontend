@@ -6,7 +6,8 @@ import Modal from '../components/Modal.jsx';
 import Spinner from '../components/Spinner.jsx';
 
 const CATEGORY_EMPTY = { name: '', description: '', sortOrder: 0 };
-const ITEM_EMPTY = { categoryId: '', name: '', description: '', price: '', sortOrder: 0, trackStock: false, stockQuantity: 0 };
+const ITEM_EMPTY = { categoryId: '', name: '', description: '', price: '', sortOrder: 0, trackStock: false, stockQuantity: 0, hasModifiers: false, modifiers: [] };
+const MODIFIER_EMPTY = { name: '', priceDelta: 0, isDefault: false };
 
 function CategoryForm({ initial, onSubmit, onCancel, loading }) {
   const [form, setForm] = useState(initial || CATEGORY_EMPTY);
@@ -42,7 +43,15 @@ function CategoryForm({ initial, onSubmit, onCancel, loading }) {
 
 function ItemForm({ initial, categories, onSubmit, onCancel, loading }) {
   const [form, setForm] = useState(
-    initial ? { ...ITEM_EMPTY, ...initial, price: String(initial.price) } : ITEM_EMPTY
+    initial
+      ? {
+          ...ITEM_EMPTY,
+          ...initial,
+          price: String(initial.price),
+          hasModifiers: (initial.modifiers || []).length > 0,
+          modifiers: (initial.modifiers || []).map((m) => ({ name: m.name, priceDelta: m.priceDelta, isDefault: m.isDefault })),
+        }
+      : ITEM_EMPTY
   );
 
   const handleChange = (e) => {
@@ -53,8 +62,35 @@ function ItemForm({ initial, categories, onSubmit, onCancel, loading }) {
     }));
   };
 
+  const handleModifierChange = (index, field, value) => {
+    setForm((prev) => {
+      const modifiers = [...prev.modifiers];
+      modifiers[index] = { ...modifiers[index], [field]: field === 'priceDelta' ? Number(value) : field === 'isDefault' ? value : value };
+      return { ...prev, modifiers };
+    });
+  };
+
+  const addModifierRow = () => {
+    setForm((prev) => ({ ...prev, modifiers: [...prev.modifiers, { ...MODIFIER_EMPTY }] }));
+  };
+
+  const removeModifierRow = (index) => {
+    setForm((prev) => ({ ...prev, modifiers: prev.modifiers.filter((_, i) => i !== index) }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = {
+      ...form,
+      price: parseFloat(form.price),
+      modifiers: form.hasModifiers ? form.modifiers.filter((m) => m.name.trim()) : [],
+    };
+    delete payload.hasModifiers;
+    onSubmit(payload);
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ ...form, price: parseFloat(form.price) }); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="label">Catégorie *</label>
         <select name="categoryId" value={form.categoryId} onChange={handleChange} className="input" required>
@@ -93,6 +129,53 @@ function ItemForm({ initial, categories, onSubmit, onCancel, loading }) {
           </div>
         )}
       </div>
+
+      <div className="border-t border-gray-200 pt-4">
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" name="hasModifiers" checked={form.hasModifiers} onChange={handleChange} className="rounded" />
+          Accompagnement / options possibles
+        </label>
+        <p className="text-xs text-gray-400 mt-1">
+          Ex : choix de sauce, garniture, cuisson. Laissez le prix à 0 pour un accompagnement inclus, ou indiquez un supplément.
+        </p>
+
+        {form.hasModifiers && (
+          <div className="mt-3 space-y-2">
+            {form.modifiers.map((mod, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={mod.name}
+                  onChange={(e) => handleModifierChange(i, 'name', e.target.value)}
+                  className="input flex-1"
+                  placeholder="Ex : Sauce poivre"
+                  required
+                />
+                <input
+                  type="number" step="0.01"
+                  value={mod.priceDelta}
+                  onChange={(e) => handleModifierChange(i, 'priceDelta', e.target.value)}
+                  className="input w-28"
+                  placeholder="Prix +"
+                />
+                <label className="flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={mod.isDefault}
+                    onChange={(e) => handleModifierChange(i, 'isDefault', e.target.checked)}
+                    className="rounded"
+                  />
+                  défaut
+                </label>
+                <button type="button" onClick={() => removeModifierRow(i)} className="btn btn-danger btn-sm">✕</button>
+              </div>
+            ))}
+            <button type="button" onClick={addModifierRow} className="btn btn-secondary btn-sm">
+              + Ajouter une option
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
         <button type="button" onClick={onCancel} className="btn btn-secondary">Annuler</button>
         <button type="submit" disabled={loading} className="btn-primary">
@@ -144,7 +227,14 @@ function CategoryAccordion({ category, canEdit, onEditCategory, onDeleteCategory
               <tbody className="divide-y divide-gray-50">
                 {category.items.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="table-cell font-medium">{item.name}</td>
+                    <td className="table-cell font-medium">
+                      {item.name}
+                      {item.modifiers?.length > 0 && (
+                        <span className="ml-2 badge bg-blue-100 text-blue-700 text-xs" title={item.modifiers.map((m) => m.name).join(', ')}>
+                          {item.modifiers.length} option{item.modifiers.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </td>
                     <td className="table-cell text-gray-500 max-w-xs truncate">{item.description || '-'}</td>
                     <td className="table-cell">
                       <span className="font-medium">{Number(item.price).toLocaleString('fr-MG')} Ar</span>
