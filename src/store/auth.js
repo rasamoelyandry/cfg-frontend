@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { authPersistStorage, setRemembered, clearAuthState } from '../utils/authStorage.js';
 
 export const useAuthStore = create(
   persist(
@@ -8,7 +9,9 @@ export const useAuthStore = create(
       accessToken: null,
       refreshToken: null,
 
-      setAuth: ({ user, accessToken, refreshToken }) => {
+      setAuth: ({ user, accessToken, refreshToken, rememberMe = true }) => {
+        // Must run before `set`, so persist writes to the right storage.
+        setRemembered(rememberMe);
         set({ user, accessToken, refreshToken });
       },
 
@@ -17,6 +20,7 @@ export const useAuthStore = create(
       },
 
       clearAuth: () => {
+        clearAuthState();
         set({ user: null, accessToken: null, refreshToken: null });
       },
 
@@ -32,6 +36,7 @@ export const useAuthStore = create(
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => authPersistStorage),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

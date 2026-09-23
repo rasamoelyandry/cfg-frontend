@@ -9,6 +9,7 @@ export default function LoginPage() {
   const setAuth = useAuthStore((s) => s.setAuth);
 
   const [form, setForm] = useState({ email: '', password: '' });
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await authApi.login(form.email, form.password);
-      setAuth({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken });
+      setAuth({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, rememberMe });
       if (data.user.role === 'SUPER_ADMIN') {
         navigate('/restaurants', { replace: true });
       } else if (data.user.role === 'KITCHEN') {
@@ -77,6 +78,17 @@ export default function LoginPage() {
                 placeholder="••••••••" disabled={loading}
               />
             </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={loading}
+                className="h-4 w-4 rounded border-gray-300 text-primary-700 focus:ring-primary-700"
+              />
+              <span className="text-sm text-gray-600">Se souvenir de moi</span>
+            </label>
+
             <button type="submit" disabled={loading} className="btn-primary w-full py-2.5">
               {loading ? (
                 <span className="flex items-center gap-2"><Spinner size="sm" />Connexion...</span>

@@ -1,6 +1,7 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/auth.js';
+import { silentRefresh } from './api/client.js';
 import PrivateRoute from './components/PrivateRoute.jsx';
 import Layout from './components/Layout.jsx';
 import Spinner from './components/Spinner.jsx';
@@ -31,6 +32,12 @@ function RootRedirect() {
 }
 
 export default function App() {
+  // Renew the access token as soon as the app opens (e.g. the next day),
+  // instead of waiting for the first API call to fail and show an error.
+  useEffect(() => {
+    silentRefresh();
+  }, []);
+
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
